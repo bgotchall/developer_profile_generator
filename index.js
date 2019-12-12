@@ -5,77 +5,96 @@ const axios=require("axios");
 
 const writeFileAsync = util.promisify(fs.writeFile);
 
-function promptUser() {
-  return inquirer.prompt([
-    {
-      type: "input",
-      name: "name",
-      message: "What is your name?"
-    },
-    {
-      type: "input",
-      name: "location",
-      message: "Where are you from?"
-    },
-    {
-      type: "input",
-      name: "hobby",
-      message: "What is your favorite hobby?"
-    },
-    {
-      type: "input",
-      name: "food",
-      message: "What is your favorite food?"
-    },
-    {
-      type: "input",
-      name: "github",
-      message: "Enter your GitHub Username"
-    },
-    {
-      type: "input",
-      name: "linkedin",
-      message: "Enter your LinkedIn URL."
-    }
-  ]);
-}
-
+// 
+var name;
+var fav_color;
 var bio_pic;
 var bio;               //text
 var num_followers=0;
-var num_followed=0;
+var num_following=0;
 var num_stars=0;
 var num_repos=0;
 var location;
 var blog_URL;
 var github_URL;
+var company;
 
 
 
-function generateHTML(answers) {
+
+function generateHTML() {
   return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-  <title>Document</title>
-</head>
-<body>
-  <div class="jumbotron jumbotron-fluid">
-  <div class="container">
-    <h1 class="display-4">Hi! My name is ${answers.name}</h1>
-    <p class="lead">I am from ${answers.location}.</p>
-    <h3>Example heading <span class="badge badge-secondary">Contact Me</span></h3>
-    <ul class="list-group">
-      <li class="list-group-item">My GitHub username is ${answers.github}</li>
-      <li class="list-group-item">LinkedIn: ${answers.linkedin}</li>
-    </ul>
-  </div>
-</div>
-</body>
-</html>`;
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+      <link
+        rel="stylesheet"
+        href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      />
+      <title>Document</title>
+    </head>
+    <body>
+      <div class="container">
+        <div class="row">
+          <div class="col header">
+            <img src="${bio_pic}" />
+            <h1>Hi!</h1>
+            <h1>My name is ${name}</h1>
+            <h3>Currently at ${company}</h3>
+            <p>${location}</p>
+            <a href=${blog_URL}>Blog</a>
+            <a href=${github_URL}>GitHub</a>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <p>${bio}</p>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col card">
+            <p>Public Repositories</p>
+            <p>${num_repos}</p>
+          </div>
+          <div class="col card">
+            <p>Followers</p>
+            <p>${num_followers}</p>
+          </div>
+        </div>
+        <div class="row">
+            <div class="col card">
+              <p>GitHub Stars</p>
+              <p>${num_stars}</p>
+            </div>
+            <div class="col card">
+              <p>Following</p>
+              <p>${num_following}</p>
+            </div>
+          </div>
+      </div>
+    </body>
+  </html>
+  <style>
+  
+  *{
+    text-align:center;
+   
+  }
+    
+  .card {
+    background-color:${fav_color};
+    margin:10px;
+    
+  }
+  
+  .header{
+    background-color:${fav_color};
+  }
+  
+  </style>
+  `;
 }
 
 
@@ -93,21 +112,57 @@ function generateHTML(answers) {
     const queryUrl_repos = `https://api.github.com/users/${username}/repos?per_page=100`;
 
     axios.get(queryUrl_repos).then(function(res) {
-      num_repos=
+      
       bio_pic=res.data[0].owner.avatar_url;
+      num_stars=0;
+      res.data.forEach(element => {
+          num_stars+=element.stargazers_count;
+      });
       console.log(bio_pic);
       //const repoNamesStr = repoNames.join("\n");
       console.log(Color);
+    fav_color=Color;
+      
+    }).then(function(){
+     const queryUrl_bio = `https://api.github.com/users/${username}`;
 
-      const queryUrl_bio = `https://api.github.com/users/${username}/repos?per_page=100`;
+    axios.get(queryUrl_bio).then(function(res) {
+        name=res.data.name;
+        num_repos=res.data.public_repos;
+        bio=res.data.bio;
+        num_following=res.data.following;
+        num_followers=res.data.followers;
+        location=res.data.location;
+        blog_URL=res.data.blog;
+        github_URL=res.data.html_url;
+        company=res.data.company;
+        console.log(num_repos);
+        console.log(bio);
+        console.log(num_following);
+        console.log(num_followers);
+        console.log(location);
+        console.log(blog_URL);
+        console.log(github_URL);
+        console.log(company);
+       
 
+        const html = generateHTML();
+
+            return writeFileAsync("index.html", html);
+          })
+          .then(function() {
+            console.log("Successfully wrote to index.html");
+          })
+          .catch(function(err) {
+            console.log(err);
+          });
+  
+      
     });
-
-
-
-    
   });
 
+
+  
 
 
 
@@ -156,3 +211,39 @@ function generateHTML(answers) {
 //   .catch(function(err) {
 //     console.log(err);
 //   });
+
+
+//function promptUser() {
+    //   return inquirer.prompt([
+    //     {
+    //       type: "input",
+    //       name: "name",
+    //       message: "What is your name?"
+    //     },
+    //     {
+    //       type: "input",
+    //       name: "location",
+    //       message: "Where are you from?"
+    //     },
+    //     {
+    //       type: "input",
+    //       name: "hobby",
+    //       message: "What is your favorite hobby?"
+    //     },
+    //     {
+    //       type: "input",
+    //       name: "food",
+    //       message: "What is your favorite food?"
+    //     },
+    //     {
+    //       type: "input",
+    //       name: "github",
+    //       message: "Enter your GitHub Username"
+    //     },
+    //     {
+    //       type: "input",
+    //       name: "linkedin",
+    //       message: "Enter your LinkedIn URL."
+    //     }
+    //   ]);
+    // }
